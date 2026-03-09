@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cambopay TOPUP — AI Assistant</title>
+<style>
+:root{
+  --bg:#f0f4f8;--surface:#ffffff;--surface2:#f8fafc;--border:#dde3ed;
+  --accent:#0077b6;--accent2:#005f99;--accent3:#0096c7;
+  --glow:rgba(0,119,182,0.09);--gold:#f4a261;
+  --success:#16a34a;--error:#dc2626;--warn:#d97706;
+  --text:#0f172a;--muted:#475569;--dim:#94a3b8;
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+  --mono:'Courier New',Courier,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;background:#f0f4f8 !important;}
+body{font-family:var(--font);background:#f0f4f8 !important;color:var(--text);display:flex;flex-direction:column;height:100vh;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 70% 50% at 15% 0%,rgba(0,119,182,0.06) 0%,transparent 65%),radial-gradient(ellipse 50% 40% at 85% 90%,rgba(0,150,199,0.05) 0%,transparent 60%);pointer-events:none;z-index:0;}
+body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,119,182,0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(0,119,182,0.06) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0;}
+
+/* HEADER */
+header{position:relative;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:62px;background:#ffffff;border-bottom:1px solid var(--border);flex-shrink:0;}
+.logo{display:flex;align-items:center;}
+.logo-img{height:38px;width:auto;object-fit:contain;}
+.env-badge{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid rgba(0,180,216,0.3);color:var(--accent);background:rgba(0,180,216,0.08);cursor:pointer;transition:all .2s;letter-spacing:.04em;font-family:var(--font);}
+.env-badge:hover{background:var(--glow);}
+.env-badge.prod{color:var(--success);border-color:rgba(45,198,83,0.3);background:rgba(45,198,83,0.07);}
+.hdr-right{display:flex;align-items:center;gap:10px;}
+.status-pill{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted);}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--success);box-shadow:0 0 8px var(--success);animation:blink 2s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.3;}}
+.hdr-btn{padding:5px 13px;border-radius:20px;border:1px solid var(--border);font-size:11px;color:var(--muted);cursor:pointer;transition:all .2s;background:rgba(0,119,182,0.04);font-family:var(--font);}
+.hdr-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--glow);}
+
+/* LAYOUT */
+.layout{display:flex;flex:1;overflow:hidden;position:relative;z-index:1;}
+
+/* SIDEBAR */
+.sidebar{width:248px;flex-shrink:0;background:#f1f5f9;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.sb-inner{flex:1;overflow-y:auto;padding:14px 10px 10px;}
+.sb-inner::-webkit-scrollbar{width:3px;}
+.sb-inner::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+.sb-label{font-size:9px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);padding:2px 8px 7px;}
+.sb-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:9px;cursor:pointer;transition:all .2s;border:1px solid transparent;font-size:12px;color:var(--muted);margin-bottom:2px;}
+.sb-item:hover{background:rgba(0,180,216,0.06);border-color:rgba(0,180,216,0.15);color:var(--text);}
+.sb-item.active{background:rgba(0,119,182,0.14);border-color:rgba(0,180,216,0.3);color:var(--accent);}
+.sb-icon{width:26px;height:26px;border-radius:7px;background:rgba(0,119,182,0.05);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
+.sb-section{margin-bottom:18px;}
+.sb-footer{padding:11px;border-top:1px solid var(--border);font-size:10px;color:var(--dim);line-height:1.7;}
+.sb-footer a{color:var(--accent);text-decoration:none;}
+.sb-footer a:hover{text-decoration:underline;}
+
+/* CHAT */
+.chat{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.messages{flex:1;overflow-y:auto;padding:26px 34px;display:flex;flex-direction:column;gap:20px;scroll-behavior:smooth;}
+.messages::-webkit-scrollbar{width:4px;}
+.messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+
+/* WELCOME */
+.welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-height:55vh;gap:20px;animation:fadeUp .5s ease both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+.welcome-orb{width:72px;height:72px;background:linear-gradient(135deg,#005f99,#0096c7);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:34px;box-shadow:0 8px 30px rgba(0,119,182,0.2);animation:float 4s ease-in-out infinite;}
+@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
+.welcome h1{font-size:25px;font-weight:700;line-height:1.25;color:#0f172a;}
+.welcome p{font-size:13px;color:var(--muted);max-width:440px;line-height:1.75;}
+.quick-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;width:100%;max-width:540px;margin-top:4px;}
+.qbtn{padding:13px 15px;background:rgba(248,250,252,0.95);border:1px solid var(--border);border-radius:12px;cursor:pointer;text-align:left;transition:all .25s;font-family:var(--font);}
+.qbtn:hover{border-color:var(--accent);background:var(--glow);transform:translateY(-2px);box-shadow:0 8px 26px rgba(0,180,216,0.12);}
+.qbtn-icon{font-size:17px;margin-bottom:6px;}
+.qbtn-title{font-size:11.5px;color:#0f172a;font-weight:600;}
+.qbtn-desc{font-size:10.5px;color:var(--muted);margin-top:2px;}
+
+/* MESSAGES */
+.msg{display:flex;gap:11px;animation:fadeUp .28s ease both;}
+.msg.user{flex-direction:row-reverse;}
+.avatar{width:33px;height:33px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;margin-top:2px;}
+.msg.bot .avatar{background:linear-gradient(135deg,var(--accent2),var(--accent));box-shadow:0 0 14px rgba(0,180,216,0.25);}
+.msg.user .avatar{background:rgba(0,119,182,0.08);border:1px solid var(--border);}
+.msg-body{max-width:78%;display:flex;flex-direction:column;gap:5px;}
+.msg.user .msg-body{align-items:flex-end;}
+.bubble{padding:12px 16px;border-radius:14px;font-size:13px;line-height:1.72;}
+.msg.bot .bubble{background:#ffffff;border:1px solid #dde3ed;box-shadow:0 1px 4px rgba(0,0,0,0.06);border-top-left-radius:4px;color:var(--text);}
+.msg.user .bubble{background:linear-gradient(135deg,var(--accent2),#0096c7);border-top-right-radius:4px;color:#fff;box-shadow:0 4px 18px rgba(0,119,182,0.28);}
+.ts{font-size:9.5px;color:var(--dim);font-family:var(--mono);}
+
+/* Rich content */
+.bubble pre{background:#f1f5f9;border:1px solid #dde3ed;border-left:3px solid var(--accent);border-radius:9px;padding:12px 14px;margin:10px 0;overflow-x:auto;font-family:var(--mono);font-size:11px;line-height:1.65;color:#005f99;position:relative;}
+.bubble code{font-family:var(--mono);font-size:11px;color:#005f99;background:rgba(0,119,182,0.08);padding:1px 5px;border-radius:4px;}
+.bubble table{width:100%;border-collapse:collapse;margin:10px 0;font-size:11.5px;}
+.bubble th{background:rgba(0,119,182,0.07);color:var(--accent);padding:7px 10px;text-align:left;font-weight:600;border-bottom:1px solid var(--border);font-size:10px;letter-spacing:.06em;}
+.bubble td{padding:6px 10px;border-bottom:1px solid rgba(30,48,85,0.5);color:var(--muted);vertical-align:top;line-height:1.5;}
+.bubble tr:last-child td{border-bottom:none;}
+.bubble td:first-child{color:var(--text);font-family:var(--mono);font-size:10.5px;white-space:nowrap;}
+.bubble strong{color:#0f172a;font-weight:600;}
+.bubble ul,.bubble ol{padding-left:18px;margin:5px 0;}
+.bubble li{margin-bottom:4px;color:var(--muted);}
+.bubble li strong{color:var(--text);}
+.bubble h4{color:var(--accent3);font-size:11.5px;font-weight:600;margin:10px 0 4px;letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:4px;}
+.bubble hr{border:none;border-top:1px solid var(--border);margin:10px 0;}
+.bubble .lang-tag{display:inline-block;background:rgba(0,119,182,0.1);color:#005f99;font-size:10px;font-family:var(--mono);padding:1px 7px;border-radius:4px;margin-bottom:5px;}
+
+.typing-bubble{display:flex;align-items:center;gap:5px;padding:11px 15px;background:#ffffff;border:1px solid var(--border);border-radius:14px;border-top-left-radius:4px;width:fit-content;}
+.typing-bubble span{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:bounce 1.1s ease-in-out infinite;}
+.typing-bubble span:nth-child(2){animation-delay:.2s;}
+.typing-bubble span:nth-child(3){animation-delay:.4s;}
+@keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.35;}30%{transform:translateY(-6px);opacity:1;}}
+
+/* INPUT BAR */
+.input-bar{padding:13px 26px 16px;border-top:1px solid var(--border);background:#ffffff;flex-shrink:0;}
+.suggestions{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:9px;}
+.sug{padding:4px 11px;border-radius:20px;border:1px solid var(--border);font-size:11px;color:var(--muted);cursor:pointer;transition:all .2s;background:rgba(0,119,182,0.04);white-space:nowrap;font-family:var(--font);}
+.sug:hover{border-color:var(--accent);color:var(--accent);background:var(--glow);}
+.input-wrap{display:flex;align-items:flex-end;gap:9px;background:#ffffff;border:1px solid var(--border);border-radius:13px;padding:9px 12px;transition:border-color .2s,box-shadow .2s;}
+.input-wrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,180,216,0.08);}
+#inp{flex:1;background:none;border:none;outline:none;color:var(--text);font-family:var(--font);font-size:13px;line-height:1.5;resize:none;min-height:22px;max-height:130px;overflow-y:auto;}
+#inp::placeholder{color:var(--dim);}
+.send{width:35px;height:35px;border-radius:10px;flex-shrink:0;background:linear-gradient(135deg,var(--accent2),var(--accent));border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;transition:all .2s;}
+.send:hover{transform:scale(1.07);box-shadow:0 4px 18px rgba(0,180,216,0.35);}
+.send:active{transform:scale(.96);}
+.send:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+.hint{font-size:10px;color:var(--dim);text-align:center;margin-top:7px;}
+@media(max-width:760px){.sidebar{display:none;}.messages{padding:14px;}.input-bar{padding:10px 14px 14px;}.quick-grid{grid-template-columns:1fr;}.msg-body{max-width:92%;}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <img src="https://cambopay.com.kh/wp-content/uploads/2025/03/logo-cambopay-convert-1024x281.png" alt="Cambopay Logo" class="logo-img"/>
+  </div>
+  <div class="env-badge" id="envBadge" onclick="toggleEnv()">🧪 UAT Mode</div>
+  <div class="hdr-right">
+    <div class="status-pill"><div class="dot"></div><span>AI Online</span></div>
+    <button class="hdr-btn" onclick="clearChat()">🗑 Clear</button>
+    <button class="hdr-btn" onclick="window.open('https://documenter.getpostman.com/view/31720617/2sAYkLkbVF','_blank')">📬 Postman</button>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sb-inner">
+
+      <div class="sb-section">
+        <div class="sb-label">Topup APIs</div>
+        <div class="sb-item active" onclick="ask('Explain Pinless TOPUP: all parameters, SOAP request XML, and sign format.')">
+          <div class="sb-icon">📱</div>Pinless TOPUP
+        </div>
+        <div class="sb-item" onclick="ask('Explain Pincode TOPUP: parameters, GetCard SOAP request, sign format, and ListCard XML response.')">
+          <div class="sb-icon">🔑</div>Pincode TOPUP
+        </div>
+        <div class="sb-item" onclick="ask('List all API endpoint URLs for UAT and Production environments: topup, transaction query and balance query.')">
+          <div class="sb-icon">🌐</div>API Endpoints
+        </div>
+      </div>
+
+      <div class="sb-section">
+        <div class="sb-label">Query &amp; Balance</div>
+        <div class="sb-item" onclick="ask('How do I query Pinless transaction status using GetTranTopup? Show SOAP request with LocalDate format note.')">
+          <div class="sb-icon">🔍</div>Pinless Status Query
+        </div>
+        <div class="sb-item" onclick="ask('How do I query Pincode transaction status using GetTranCard? Show the full SOAP request.')">
+          <div class="sb-icon">🃏</div>Pincode Status Query
+        </div>
+        <div class="sb-item" onclick="ask('How do I check prepaid partner balance using GetBalance? Show SOAP request and response.')">
+          <div class="sb-icon">💰</div>Balance Query
+        </div>
+      </div>
+
+      <div class="sb-section">
+        <div class="sb-label">Signature Code</div>
+        <div class="sb-item" onclick="ask('Show me the complete Python code to generate an RSA signature for Cambopay TOPUP API.')">
+          <div class="sb-icon">🐍</div>Python Signature
+        </div>
+        <div class="sb-item" onclick="ask('Show me the complete Java code to generate an RSA signature for Cambopay TOPUP API.')">
+          <div class="sb-icon">☕</div>Java Signature
+        </div>
+        <div class="sb-item" onclick="ask('Explain how RSA signature works in Cambopay: algorithm, key format, Base64 vs HEX encoding, and sign data format for each API.')">
+          <div class="sb-icon">🔐</div>RSA Signature Guide
+        </div>
+      </div>
+
+      <div class="sb-section">
+        <div class="sb-label">Reference</div>
+        <div class="sb-item" onclick="ask('Show all Pinless and Pincode response codes with descriptions and refund requirements.')">
+          <div class="sb-icon">⚠️</div>Response Codes
+        </div>
+        <div class="sb-item" onclick="ask('What are the available topup amounts and operator limits for Pinless and Pincode?')">
+          <div class="sb-icon">📊</div>Topup Limits
+        </div>
+        <div class="sb-item" onclick="ask('Explain all 5 error flow scenarios in the Cambopay topup connection model.')">
+          <div class="sb-icon">🔄</div>Error Flows
+        </div>
+        <div class="sb-item" onclick="ask('What are the transaction channel codes and what do they mean?')">
+          <div class="sb-icon">📡</div>Channels
+        </div>
+      </div>
+    </div>
+    <div class="sb-footer">
+      Postman: <a href="https://documenter.getpostman.com/view/31720617/2sAYkLkbVF" target="_blank">View Samples</a><br/>
+      Prod: <a href="https://topup.cambopay.com.kh" target="_blank">topup.cambopay.com.kh</a>
+    </div>
+  </div>
+
+  <!-- CHAT -->
+  <div class="chat">
+    <div class="messages" id="msgs">
+      <div class="welcome" id="welcome">
+        <div class="welcome-orb">🤖</div>
+        <h1>Cambopay TOPUP<br/>API Assistant</h1>
+        <p>Expert guide to the Cambopay SOAP API V2 — Pinless &amp; Pincode topup, transaction queries, RSA signatures with Python &amp; Java code, error codes, and all endpoints.</p>
+        <div class="quick-grid">
+          <button class="qbtn" onclick="ask('List all API endpoint URLs for UAT and Production for topup, transaction status, and balance query.')">
+            <div class="qbtn-icon">🌐</div>
+            <div class="qbtn-title">All Endpoints</div>
+            <div class="qbtn-desc">UAT &amp; Production URLs</div>
+          </button>
+          <button class="qbtn" onclick="ask('Show me the complete Python code for Cambopay RSA signature generation with a Pinless topup example.')">
+            <div class="qbtn-icon">🐍</div>
+            <div class="qbtn-title">Python Signature</div>
+            <div class="qbtn-desc">Full working code sample</div>
+          </button>
+          <button class="qbtn" onclick="ask('Show me the complete Java code for Cambopay RSA signature generation.')">
+            <div class="qbtn-icon">☕</div>
+            <div class="qbtn-title">Java Signature</div>
+            <div class="qbtn-desc">Full working code sample</div>
+          </button>
+          <button class="qbtn" onclick="ask('Show all response codes table for Pinless and Pincode, which ones require refund?')">
+            <div class="qbtn-icon">⚠️</div>
+            <div class="qbtn-title">Response Codes</div>
+            <div class="qbtn-desc">Error meanings &amp; refund rules</div>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-bar">
+      <div class="suggestions">
+        <div class="sug" onclick="ask('Show Python code for Pinless topup signature using BASE64 encoding.')">Python BASE64 sign</div>
+        <div class="sug" onclick="ask('Show Python code for status query signature using HEX encoding.')">Python HEX sign</div>
+        <div class="sug" onclick="ask('Show the GetCard SOAP request for Metfone Pincode topup.')">GetCard SOAP</div>
+        <div class="sug" onclick="ask('What is the difference between LocalDateTime and LocalDate parameters?')">DateTime formats</div>
+        <div class="sug" onclick="ask('What is response code 79 and how do I fix it?')">RespCode 79</div>
+        <div class="sug" onclick="ask('Show GetBalance SOAP request and explain the HEX sign format.')">Balance query</div>
+      </div>
+      <div class="input-wrap">
+        <textarea id="inp" rows="1" placeholder="Ask anything about Cambopay TOPUP SOAP API V2…" onkeydown="onKey(event)" oninput="resize(this)"></textarea>
+        <button class="send" id="sendBtn" onclick="sendMsg()">➤</button>
+      </div>
+      <div class="hint">Enter to send · Shift+Enter for new line</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const MODEL='claude-sonnet-4-20250514';
+// ── CONFIG: Change BACKEND_URL after deploying your FastAPI backend ──
+const BACKEND_URL = 'http://localhost:3000'; // e.g. https://cambopay-api.onrender.com
+const SESSION_ID  = 'session-' + Math.random().toString(36).substr(2, 9);
+let history=[];
+let isUAT=true;
+
+const SYSTEM=`You are an expert AI assistant for Cambopay TOPUP Service SOAP API V2. Help developers integrate with Cambopay's mobile top-up platform in Cambodia.
+
+You have the complete V2 documentation AND the official signature code samples (Python and Java).
+
+==========================================================
+SECTION 1: API ENDPOINT URLS
+==========================================================
+
+TOPUP REQUEST URLs:
+- UAT Private:   http://10.22.18.99/CambopayBank_T/CambopaySrv.asmx
+- UAT Public:    https://topuptestcam.vnpaytest.vn/CambopayBank_T/CambopaySrv.asmx
+- PROD Private:  http://10.245.6.16/CambopayBank/CambopaySrv.asmx
+- PROD Public:   https://topup.cambopay.com.kh/CambopayBank/CambopaySrv.asmx
+
+TRANSACTION STATUS QUERY URLs:
+- UAT Private:   http://10.22.18.99/CambopayTranService_T/CambopaySrv.asmx
+- UAT Public:    https://topuptestcam.vnpaytest.vn/CambopayTranService_T/CambopaySrv.asmx
+- PROD Private:  http://10.245.6.16/CambopayTranService/CambopaySrv.asmx
+- PROD Public:   https://topup.cambopay.com.kh/CambopayTranService/CambopaySrv.asmx
+
+BALANCE QUERY URLs: Same as Transaction Status Query URLs above.
+
+==========================================================
+SECTION 2: PINLESS TOPUP (TopupV2)
+==========================================================
+
+SOAPAction: "http://vnpay.vn/TopupV2"
+
+REQUEST PARAMETERS:
+- Trace: String – Unique (1-99999999), zero-pad to 8 chars e.g. "00000001"
+- MobileNo: String – Customer mobile number
+- Amount: Integer/Decimal – USD 1,2,5,6,10,20,50 or decimals (1.25, 1.5, 2.5, 25.78, 50.5, etc.)
+- BankCode: String – Partner code from Cambopay e.g. "970418"
+- AccountNo: String – Reconciliation bank/user account ID
+- Channel: String – 6011=ATM | 6012=TELLER | 6013=SMS | 6014=INTERNET | 6015=MOBILE
+- LocalDateTime: String – yyyyMMddHHmmss e.g. "20250516100439"
+- Sign: RSA 1024-bit PKCS#1 SHA1withRSA BASE64 of: "Trace-MobileNo-Amount-BankCode-AccountNo-Channel-LocalDateTime"
+
+Example plaintext to sign: "123456721-012345678-10.5-9711111-123456789-6015-20250516100439"
+
+RESPONSE: RespCode, MobileNo, Trace, CambopayDateTime (yyyyMMddHHmmss), LocalDateTime (yyyyMMddHHmmss)
+Response Sign: RSA BASE64 of "RespCode-MobileNo-Trace-CambopayDateTime-LocalDateTime"
+
+SOAP REQUEST XML:
+POST /CambopayBank/CambopaySrv.asmx HTTP/1.1
+Host: topup.cambopay.com.kh
+Content-Type: text/xml; charset=utf-8
+SOAPAction: "http://vnpay.vn/TopupV2"
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <TopupV2 xmlns="http://vnpay.vn/">
+      <Trace>00000001</Trace>
+      <MobileNo>012345678</MobileNo>
+      <Amount>10.5</Amount>
+      <BankCode>970418</BankCode>
+      <AccountNo>123456789</AccountNo>
+      <Channel>6015</Channel>
+      <LocalDateTime>20250516100439</LocalDateTime>
+      <Sign>BASE64_SIGNATURE_HERE</Sign>
+    </TopupV2>
+  </soap:Body>
+</soap:Envelope>
+
+SOAP RESPONSE XML:
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope ...>
+  <soap:Body>
+    <TopupV2Response xmlns="http://vnpay.vn/">
+      <TopupV2Result>
+        <RespCode>00</RespCode>
+        <MobileNo>012345678</MobileNo>
+        <Trace>00000001</Trace>
+        <CambopayDateTime>20250516100445</CambopayDateTime>
+        <LocalDateTime>20250516100439</LocalDateTime>
+        <Sign>BASE64_SIGNATURE_HERE</Sign>
+      </TopupV2Result>
+    </TopupV2Response>
+  </soap:Body>
+</soap:Envelope>
+
+==========================================================
+SECTION 3: PINCODE TOPUP (GetCard)
+==========================================================
+
+SOAPAction: "http://vnpay.vn/GetCard"
+
+REQUEST:
+- Trace: String – 1-999999, pad to 8 chars
+- PartnerCode: String – e.g. "970418"
+- ProductCode: MT=METFONE | ST=SEATEL | SM=SMART | MB=CELLCARD
+- Quantity: Integer – number of pin cards to purchase
+- Amount: Decimal – USD 1,2,5,6,10,20,50
+- AccountNo: String
+- Channel: 6011-6015
+- LocalDateTime: yyyyMMddHHmmss
+- Sign: RSA BASE64 of "Trace-PartnerCode-ProductCode-Quantity-Amount-AccountNo-Channel-LocalDateTime"
+
+RESPONSE: RespCode, Trace, PartnerCode, ProductCode, Quantity, Amount, AccountNo, Channel, CambopayDateTime, LocalDateTime
+ListCard XML in response (Serial, PinCode, ExpiredDate, ProductCode per card):
+<?xml version="1.0" encoding="utf-16"?>
+<ListCard xmlns:xsi="..." xmlns:xsd="...">
+  <ListCardTye>
+    <Serial>11124564580</Serial>
+    <PinCode>111245565480</PinCode>
+    <ExpiredDate>20/12/2063</ExpiredDate>
+    <ProductCode>MTC1</ProductCode>
+  </ListCardTye>
+</ListCard>
+Response Sign: RSA BASE64 of "RespCode-Trace-PartnerCode-ProductCode-Quantity-Amount-AccountNo-Channel-CambopayDateTime-LocalDateTime"
+
+SOAP REQUEST XML:
+POST /CambopayBank/CambopaySrv.asmx HTTP/1.1
+Host: topup.cambopay.com.kh
+SOAPAction: "http://vnpay.vn/GetCard"
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <GetCard xmlns="http://vnpay.vn/">
+      <Trace>00000001</Trace>
+      <PartnerCode>970418</PartnerCode>
+      <ProductCode>MT</ProductCode>
+      <Quantity>2</Quantity>
+      <Amount>5</Amount>
+      <AccountNo>123456789</AccountNo>
+      <Channel>6015</Channel>
+      <LocalDateTime>20250516100439</LocalDateTime>
+      <Sign>BASE64_SIGNATURE_HERE</Sign>
+    </GetCard>
+  </soap:Body>
+</soap:Envelope>
+
+==========================================================
+SECTION 4: TRANSACTION STATUS QUERY
+==========================================================
+
+--- 4A: PINLESS STATUS (GetTranTopup) ---
+SOAPAction: "http://vnpay.vn/GetTranTopup"
+URL path: /CambopayTranService/CambopaySrv.asmx
+
+REQUEST:
+- Trace, MobileNo, Amount, BankCode
+- LocalDate: yyyyMMdd ONLY (NOT full timestamp!) e.g. "20220727"
+  Yesterday = "20220726" (use -1 day for previous day transactions)
+- Sign: RSA 1024-bit SHA1withRSA HEX (NOT Base64!) of "Trace-MobileNo-Amount-BankCode-LocalDate"
+
+IMPORTANT: Wait 60+ minutes before querying for final reconciled status. Query immediately only to check if request reached Cambopay (e.g. after HTTP timeout).
+
+SOAP REQUEST:
+POST /CambopayTranService/CambopaySrv.asmx HTTP/1.1
+SOAPAction: "http://vnpay.vn/GetTranTopup"
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope ...>
+  <soap:Body>
+    <GetTranTopup xmlns="http://vnpay.vn/">
+      <Trace>00000001</Trace>
+      <MobileNo>012345678</MobileNo>
+      <Amount>10.5</Amount>
+      <BankCode>970418</BankCode>
+      <LocalDate>20220727</LocalDate>
+      <Sign>HEX_SIGNATURE_HERE</Sign>
+    </GetTranTopup>
+  </soap:Body>
+</soap:Envelope>
+
+RESPONSE: RespCode, MobileNo, Amount, BankCode, Trace, CambopayDateTime (yyyyMMddHHmmss), LocalDate (yyyyMMdd)
+Response Sign: RSA of "RespCode-MobileNo-Trace-CambopayDateTime-LocalDate"
+
+--- 4B: PINCODE STATUS (GetTranCard) ---
+SOAPAction: "http://vnpay.vn/GetTranCard"
+
+REQUEST: Trace, PartnerCode, ProductCode, Quantity (int), Amount, LocalDate (yyyyMMdd)
+Sign: RSA HEX of "Trace-PartnerCode-ProductCode-Amount-LocalDate"
+
+SOAP REQUEST:
+<GetTranCard xmlns="http://vnpay.vn/">
+  <Trace>00000001</Trace>
+  <PartnerCode>970418</PartnerCode>
+  <ProductCode>MT</ProductCode>
+  <Quantity>2</Quantity>
+  <Amount>5</Amount>
+  <LocalDate>20220727</LocalDate>
+  <Sign>HEX_SIGNATURE_HERE</Sign>
+</GetTranCard>
+
+RESPONSE includes: ListCard XML, CambopayDateTime, LocalDate, AccountNo, Channel
+Response Sign: RSA of "RespCode-Trace-PartnerCode-ProductCode-Quantity-Amount-AccountNo-Channel-CambopayDateTime-LocalDate"
+
+==========================================================
+SECTION 5: BALANCE QUERY (GetBalance)
+==========================================================
+
+SOAPAction: "http://vnpay.vn/GetBalance"
+URL: /CambopayTranService/CambopaySrv.asmx (same as transaction query)
+
+REQUEST: BankCode, LocalDateTime (yyyyMMddHHmmss), Sign (RSA HEX of "BankCode-LocalDateTime")
+
+SOAP REQUEST:
+POST /CambopayTranService/CambopaySrv.asmx HTTP/1.1
+SOAPAction: "http://vnpay.vn/GetBalance"
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope ...>
+  <soap:Body>
+    <GetBalance xmlns="http://vnpay.vn/">
+      <BankCode>970418</BankCode>
+      <LocalDateTime>20250516100439</LocalDateTime>
+      <Sign>HEX_SIGNATURE_HERE</Sign>
+    </GetBalance>
+  </soap:Body>
+</soap:Envelope>
+
+RESPONSE: RespCode, BankCode (number), Balance (decimal), CambopayDateTime, LocalDateTime
+Response Sign: RSA of "RespCode-BankCode-Balance-CambopayDateTime-LocalDateTime"
+
+==========================================================
+SECTION 6: RSA SIGNATURE — FULL GUIDE + CODE
+==========================================================
+
+ALGORITHM: RSA 1024-bit, PKCS#1 v1.5, SHA1withRSA (SHA-1 hash)
+KEY FORMAT: DER format, Base64 encoded (PKCS#8 for private key, X.509 for public key)
+
+CRITICAL ENCODING RULES:
+- Topup APIs (TopupV2, GetCard): Sign = BASE64 encoded
+- Status Query (GetTranTopup, GetTranCard): Sign = HEX encoded  
+- Balance Query (GetBalance): Sign = HEX encoded
+
+SIGN DATA FORMAT TABLE:
+| API              | Data to Sign                                                                         | Encoding |
+|------------------|--------------------------------------------------------------------------------------|----------|
+| Pinless TOPUP    | Trace-MobileNo-Amount-BankCode-AccountNo-Channel-LocalDateTime                       | Base64   |
+| Pincode TOPUP    | Trace-PartnerCode-ProductCode-Quantity-Amount-AccountNo-Channel-LocalDateTime         | Base64   |
+| Pinless Status   | Trace-MobileNo-Amount-BankCode-LocalDate                                             | HEX      |
+| Pincode Status   | Trace-PartnerCode-ProductCode-Amount-LocalDate                                       | HEX      |
+| Balance Query    | BankCode-LocalDateTime                                                               | HEX      |
+
+---
+OFFICIAL PYTHON SIGNATURE SAMPLE CODE:
+---
+
+import base64
+import datetime
+from enum import Enum
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives import serialization, hashes
+from cryptography.hazmat.backends import default_backend
+
+class SignatureFormat(Enum):
+    HEX = "HEX"
+    BASE64 = "BASE64"
+
+def load_private_key(private_key_data: str, is_file: bool):
+    """Load RSA private key from file path or base64-encoded string."""
+    if is_file:
+        with open(private_key_data, "rb") as key_file:
+            private_key_data = key_file.read()
+    else:
+        private_key_data = base64.b64decode(private_key_data)
+    return serialization.load_der_private_key(
+        private_key_data, password=None, backend=default_backend()
+    )
+
+def load_public_key(public_key_data: str, is_file: bool):
+    """Load RSA public key from file path or base64-encoded string."""
+    if is_file:
+        with open(public_key_data, "rb") as key_file:
+            public_key_data = key_file.read()
+    else:
+        public_key_data = base64.b64decode(public_key_data)
+    return serialization.load_der_public_key(
+        public_key_data, backend=default_backend()
+    )
+
+def sign(data: str, private_key_data: str, is_file: bool, format: SignatureFormat) -> str:
+    """Sign data with RSA private key. Returns HEX or Base64 encoded signature."""
+    private_key = load_private_key(private_key_data, is_file)
+    signature = private_key.sign(
+        data.encode(),
+        padding.PKCS1v15(),
+        hashes.SHA1(),      # SHA1withRSA algorithm
+    )
+    return signature.hex() if format == SignatureFormat.HEX else base64.b64encode(signature).decode()
+
+def verify(data: str, signed_data: str, public_key_data: str, is_file: bool, format: SignatureFormat) -> bool:
+    """Verify RSA signature using public key."""
+    public_key = load_public_key(public_key_data, is_file)
+    signature = bytes.fromhex(signed_data) if format == SignatureFormat.HEX else base64.b64decode(signed_data)
+    try:
+        public_key.verify(signature, data.encode(), padding.PKCS1v15(), hashes.SHA1())
+        return True
+    except Exception:
+        return False
+
+def get_timestamp():
+    return datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+
+# ── EXAMPLE: Pinless TOPUP (BASE64) ──
+timestamp = get_timestamp()
+trace = "123456721"
+mobile = "012345678"
+amount = "10.5"
+bank_code = "9711111"
+account_no = "123456789"
+channel = "6015"
+
+plaintext = f"{trace}-{mobile}-{amount}-{bank_code}-{account_no}-{channel}-{timestamp}"
+print("Plaintext:", plaintext)
+
+# Load your keys (base64-encoded DER format)
+private_key_b64 = "YOUR_PRIVATE_KEY_BASE64_HERE"
+public_key_b64  = "YOUR_PUBLIC_KEY_BASE64_HERE"
+
+signed = sign(plaintext, private_key_b64, is_file=False, format=SignatureFormat.BASE64)
+valid  = verify(plaintext, signed, public_key_b64, is_file=False, format=SignatureFormat.BASE64)
+print("Signature (BASE64):", signed)
+print("Valid:", valid)
+
+# ── EXAMPLE: Status Query (HEX) ──
+local_date = datetime.datetime.now().strftime("%Y%m%d")
+status_plaintext = f"{trace}-{mobile}-{amount}-{bank_code}-{local_date}"
+signed_hex = sign(status_plaintext, private_key_b64, is_file=False, format=SignatureFormat.HEX)
+print("Status Query Sign (HEX):", signed_hex)
+
+
+---
+OFFICIAL JAVA SIGNATURE SAMPLE CODE:
+---
+
+package com.vnpay.utils;
+
+import java.io.*;
+import java.security.*;
+import java.security.interfaces.*;
+import java.security.spec.*;
+import sun.misc.BASE64Decoder;
+import sun.misc.BASE64Encoder;
+
+public class Crypto {
+
+    // ── SIGN: returns Base64-encoded signature ──
+    public static String Sign(String dataToSign, String privateKey, Boolean isFile)
+        throws Exception {
+        RSAPrivateKey _privateKey = LoadPrivateKey(privateKey, isFile);
+        Signature signature = Signature.getInstance("SHA1withRSA");
+        signature.initSign(_privateKey);
+        signature.update(dataToSign.getBytes());
+        byte[] bSigned = signature.sign();
+        return encodeBase64(bSigned);  // Returns Base64
+        // For HEX: use bytesToHex(bSigned) instead
+    }
+
+    // ── VERIFY: accepts Base64-encoded signature ──
+    public static boolean Verify(String dataToVerify, String signedData, String pubCer, Boolean isFile)
+        throws Exception {
+        RSAPublicKey _publicKey = LoadPublicKey(pubCer, isFile);
+        Signature signature = Signature.getInstance("SHA1withRSA");
+        signature.initVerify(_publicKey);
+        signature.update(dataToVerify.getBytes(), 0, dataToVerify.getBytes().length);
+        byte[] bSign = decodeBase64(signedData);
+        return signature.verify(bSign);
+    }
+
+    // ── LOAD PRIVATE KEY (PKCS#8 DER, Base64-encoded) ──
+    private static RSAPrivateKey LoadPrivateKey(String key, Boolean isFile)
+        throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+        String sKey = isFile ? fullyReadFile(new File(key)) : key.trim();
+        // Strip PEM headers if present
+        sKey = sKey.replace("-----BEGIN PRIVATE KEY-----", "")
+                   .replace("-----END PRIVATE KEY-----", "")
+                   .replaceAll("[\n\r ]", "");
+        byte[] b = decodeBase64(sKey);
+        PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(b);
+        KeyFactory factory = KeyFactory.getInstance("RSA");
+        return (RSAPrivateKey) factory.generatePrivate(spec);
+    }
+
+    // ── LOAD PUBLIC KEY (X.509 DER, Base64-encoded) ──
+    private static RSAPublicKey LoadPublicKey(String pubCer, Boolean isFile)
+        throws Exception {
+        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+        EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(Base64.decode(pubCer));
+        return (RSAPublicKey) keyFactory.generatePublic(publicKeySpec);
+    }
+
+    private static String fullyReadFile(File file) throws IOException {
+        DataInputStream dis = new DataInputStream(new FileInputStream(file));
+        byte[] bytes = new byte[(int) file.length()];
+        dis.readFully(bytes);
+        dis.close();
+        return new String(bytes).trim();
+    }
+
+    private static String encodeBase64(byte[] data) {
+        BASE64Encoder b64e = new BASE64Encoder();
+        return b64e.encode(data);
+    }
+
+    private static byte[] decodeBase64(String data) throws IOException {
+        BASE64Decoder b64d = new BASE64Decoder();
+        return b64d.decodeBuffer(data);
+    }
+
+    // Helper for HEX encoding (use for status query / balance query)
+    public static String bytesToHex(byte[] bytes) {
+        StringBuilder sb = new StringBuilder();
+        for (byte b : bytes) sb.append(String.format("%02x", b));
+        return sb.toString();
+    }
+
+    // ── EXAMPLE USAGE ──
+    public static void main(String[] args) throws Exception {
+        String timestamp = new java.text.SimpleDateFormat("yyyyMMddHHmmss")
+                              .format(new java.util.Date());
+
+        // Pinless TOPUP sign (BASE64)
+        String plaintext = "123456721-012345678-10.5-970418-123456789-6015-" + timestamp;
+        String privateKeyB64 = "YOUR_PRIVATE_KEY_BASE64_HERE";
+        String publicKeyB64  = "YOUR_PUBLIC_KEY_BASE64_HERE";
+
+        String signedBase64 = Sign(plaintext, privateKeyB64, false);
+        boolean valid = Verify(plaintext, signedBase64, publicKeyB64, false);
+        System.out.println("Plaintext: " + plaintext);
+        System.out.println("Signature (BASE64): " + signedBase64);
+        System.out.println("Valid: " + valid);
+
+        // Status query sign (HEX) — use bytesToHex on the raw signature bytes
+        String localDate = new java.text.SimpleDateFormat("yyyyMMdd")
+                               .format(new java.util.Date());
+        String statusPlain = "123456721-012345678-10.5-970418-" + localDate;
+        RSAPrivateKey pk = LoadPrivateKey(privateKeyB64, false);
+        Signature sig = Signature.getInstance("SHA1withRSA");
+        sig.initSign(pk);
+        sig.update(statusPlain.getBytes());
+        String signedHex = bytesToHex(sig.sign());
+        System.out.println("Status Sign (HEX): " + signedHex);
+    }
+}
+
+
+==========================================================
+SECTION 7: RESPONSE CODES
+==========================================================
+
+PINLESS:
+00 - Successful (no refund)
+01 - Provider maintenance (Refund required)
+03 - Invalid IP address (Refund required)
+05 - Connection disconnected (Refund required)
+06 - Invalid LocalDateTime format (Refund required)
+08 - Transaction timed out — will process in reconciliation (Refund required)
+09 - Duplicate trace number (Refund required)
+12 - Phone number invalid, restricted, or inactive (Refund required)
+13 - Invalid transaction amount (Refund required)
+14 - Invalid transaction amount (Refund required)
+20 - Invalid partner/bank code (Refund required)
+79 - Invalid RSA signature (Refund required)
+96 - System error/exception (Refund required)
+
+PINCODE:
+00 - Successful (no refund)
+01 - Telecom provider error (Refund required)
+03 - Invalid IP address (Refund required)
+05 - System maintenance (Refund required)
+06 - Invalid LocalDateTime (Refund required)
+08 - Transaction timed out (Refund required)
+09 - Trace already exists or invalid format (Refund required)
+13 - Invalid amount (Refund required)
+20 - Invalid partner code (Refund required)
+62 - Insufficient pin stock (Refund required)
+79 - Invalid signature (Refund required)
+
+==========================================================
+SECTION 8: AVAILABLE TOPUP AMOUNTS
+==========================================================
+
+PINLESS (min/max per operator):
+- Cellcard: $1 – $999 (decimal amounts supported)
+- Metfone:  $1 – $100
+- Seatel:   $1 – $500
+- Smart:    $1 – $100
+
+PINCODE fixed denominations:
+- Smart:    $1, $2, $5, $10, $20
+- Seatel:   $1, $2, $5, $10, $20, $50
+- Metfone:  $1, $2, $5, $10, $20, $50
+- Cellcard: $1, $2, $5, $10, $20, $50
+
+==========================================================
+SECTION 9: DATETIME FORMAT RULES
+==========================================================
+- Topup request LocalDateTime: yyyyMMddHHmmss (full timestamp, 14 digits)
+- Status query LocalDate: yyyyMMdd (date ONLY, 8 digits — field name is "LocalDate" not "LocalDateTime")
+- Balance query LocalDateTime: yyyyMMddHHmmss
+
+==========================================================
+SECTION 10: TRANSACTION CHANNELS
+==========================================================
+6011 = ATM
+6012 = TELLER
+6013 = SMS
+6014 = INTERNET
+6015 = MOBILE
+
+==========================================================
+SECTION 11: CONNECTION FLOW ERRORS
+==========================================================
+
+Successful: Customer → Partner → Cambopay → Telco → OK → Partner → Customer
+
+Error 1: Cambopay unreachable → Partner HTTP Timeout → Customer Timeout
+Error 2: Telco unreachable from Cambopay → Cambopay Fail response → Customer Fail
+Error 3: Telco RC≠00 → Cambopay returns Fail Status → Customer Fail
+Error 4: Telco processes OK but Cambopay cannot receive response → Timeout sent to Partner
+Error 5: Cambopay sends OK but Partner cannot receive → Customer Timeout
+
+==========================================================
+SECTION 12: DEPENDENCY FOR PYTHON (pip install)
+==========================================================
+pip install cryptography
+
+KEY NOTES:
+- Private key: DER format, PKCS#8 encoded, then base64 encoded
+- Public key: DER format, X.509/SubjectPublicKeyInfo encoded, then base64 encoded
+- The sign function uses SHA1 (SHA1withRSA), not SHA256
+- is_file=True: pass a file path; is_file=False: pass base64 key string directly
+- Postman samples: https://documenter.getpostman.com/view/31720617/2sAYkLkbVF
+
+RESPONSE FORMAT INSTRUCTIONS:
+- Always use code blocks (triple backticks) for all code
+- Add language label before code blocks: python, java, xml
+- Use tables for parameter lists
+- For signature questions, show both the sign data format AND the code
+- Always clarify Base64 vs HEX when discussing signatures
+- For error codes, always state whether refund is required
+- Clarify LocalDate vs LocalDateTime naming difference between APIs`;
+
+function toggleEnv(){
+  isUAT=!isUAT;
+  const b=document.getElementById('envBadge');
+  if(isUAT){b.textContent='🧪 UAT Mode';b.classList.remove('prod');}
+  else{b.textContent='🚀 Production Mode';b.classList.add('prod');}
+}
+function now(){return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}
+function resize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,130)+'px';}
+function onKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}}
+function scrollDown(){const m=document.getElementById('msgs');m.scrollTop=m.scrollHeight;}
+function removeWelcome(){const w=document.getElementById('welcome');if(w)w.remove();}
+function esc(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function md(text){
+  // fenced code blocks
+  text=text.replace(/```(\w+)?\n?([\s\S]*?)```/g,(_,lang,code)=>{
+    const l=lang?`<div class="lang-tag">${lang}</div>`:'';
+    return `${l}<pre>${code.replace(/</g,'&lt;').replace(/>/g,'&gt;').trimEnd()}</pre>`;
+  });
+  // inline code
+  text=text.replace(/`([^`\n]+)`/g,'<code>$1</code>');
+  // bold
+  text=text.replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>');
+  // headings
+  text=text.replace(/^#{1,4}\s(.+)$/gm,'<h4>$1</h4>');
+  // horizontal rule
+  text=text.replace(/^---$/gm,'<hr/>');
+  // unordered list
+  text=text.replace(/^[-•*]\s(.+)$/gm,'<li>$1</li>');
+  text=text.replace(/((?:<li>.*<\/li>\n?)+)/g,'<ul>$1</ul>');
+  // paragraphs / line breaks
+  text=text.replace(/\n\n/g,'<br/><br/>');
+  text=text.replace(/(?<!>)\n(?!<(?:ul|li|h4|hr|br|pre|div))/g,'<br/>');
+  return text;
+}
+
+function addMsg(role,content){
+  const msgs=document.getElementById('msgs');
+  const div=document.createElement('div');
+  div.className=`msg ${role}`;
+  const html=role==='bot'?md(content):esc(content);
+  div.innerHTML=`<div class="avatar">${role==='bot'?'🤖':'👤'}</div><div class="msg-body"><div class="bubble">${html}</div><div class="ts">${now()}</div></div>`;
+  msgs.appendChild(div);
+  scrollDown();
+}
+
+function showTyping(){
+  const msgs=document.getElementById('msgs');
+  const div=document.createElement('div');
+  div.className='msg bot';div.id='typing';
+  div.innerHTML=`<div class="avatar">🤖</div><div class="msg-body"><div class="typing-bubble"><span></span><span></span><span></span></div></div>`;
+  msgs.appendChild(div);scrollDown();
+}
+function hideTyping(){const el=document.getElementById('typing');if(el)el.remove();}
+
+const WELCOME_HTML=`<div class="welcome" id="welcome">
+  <div class="welcome-orb">🤖</div>
+  <h1>Cambopay TOPUP<br/>API Assistant</h1>
+  <p>Expert guide to the Cambopay SOAP API V2 — Pinless &amp; Pincode topup, transaction queries, RSA signatures with Python &amp; Java code, error codes, and all endpoints.</p>
+  <div class="quick-grid">
+    <button class="qbtn" onclick="ask('List all API endpoint URLs for UAT and Production for topup, transaction status, and balance query.')"><div class="qbtn-icon">🌐</div><div class="qbtn-title">All Endpoints</div><div class="qbtn-desc">UAT &amp; Production URLs</div></button>
+    <button class="qbtn" onclick="ask('Show me the complete Python code for Cambopay RSA signature generation with a Pinless topup example.')"><div class="qbtn-icon">🐍</div><div class="qbtn-title">Python Signature</div><div class="qbtn-desc">Full working code sample</div></button>
+    <button class="qbtn" onclick="ask('Show me the complete Java code for Cambopay RSA signature generation.')"><div class="qbtn-icon">☕</div><div class="qbtn-title">Java Signature</div><div class="qbtn-desc">Full working code sample</div></button>
+    <button class="qbtn" onclick="ask('Show all response codes for Pinless and Pincode. Which ones require refund?')"><div class="qbtn-icon">⚠️</div><div class="qbtn-title">Response Codes</div><div class="qbtn-desc">Error meanings &amp; refund rules</div></button>
+  </div>
+</div>`;
+
+function clearChat(){history=[];document.getElementById('msgs').innerHTML=WELCOME_HTML;}
+
+function ask(q){document.getElementById('inp').value=q;sendMsg();}
+
+async function sendMsg(){
+  const inp=document.getElementById('inp');
+  const text=inp.value.trim();
+  if(!text)return;
+  removeWelcome();
+  inp.value='';inp.style.height='auto';
+  document.getElementById('sendBtn').disabled=true;
+  addMsg('user',text);
+  history.push({role:'user',content:text});
+  showTyping();
+  try{
+    // ── Call your backend (change URL after deploying) ──
+    const res=await fetch(BACKEND_URL+'/api/chat',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        sessionId:SESSION_ID,
+        environment:isUAT?'UAT':'Production',
+        messages:history
+      })
+    });
+    const data=await res.json();
+    hideTyping();
+    const reply=data.error?`⚠️ **Error:** ${data.error}`:`${data.reply}`;
+    addMsg('bot',reply);
+    if(!data.error)history.push({role:'assistant',content:data.reply});
+  }catch(err){
+    hideTyping();
+    addMsg('bot',`⚠️ **Network error:** ${err.message}\n\nMake sure your backend server is running at: **${BACKEND_URL}**`);
+  }
+  document.getElementById('sendBtn').disabled=false;
+  inp.focus();
+}
+</script>
+</body>
+</html>
